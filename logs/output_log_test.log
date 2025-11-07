@@ -1,0 +1,12 @@
+[COMMAND]: cmd /c echo logging test output
+
+[DURATION]: 0.02 seconds
+
+[EXIT CODE]: 0
+
+[STDOUT]
+logging test output"
+
+
+[STDERR]
+

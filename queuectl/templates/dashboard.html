@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>QueueCTL Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <!-- ================= STYLING ================= -->
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #111827;
+      --muted: #9ca3af;
+      --text: #e5e7eb;
+      --accent: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --blue: #3b82f6;
+      --violet: #8b5cf6;
+    }
+
+    body {
+      margin: 0; padding: 24px;
+      background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+      color: var(--text);
+      font-family: 'Segoe UI', Roboto, Ubuntu, sans-serif;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .sub { color: var(--muted); margin-bottom: 24px; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+    .card {
+      background: #0b1220cc;
+      border: 1px solid #172036;
+      border-radius: 16px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .stat {
+      background: #0f1a33; border: 1px solid #1f2b4a;
+      border-radius: 12px; padding: 12px;
+    }
+    .stat .label { color: var(--muted); font-size: 13px; }
+    .stat .value { font-size: 24px; font-weight: 700; margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #1e293b; text-align: left; }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; }
+    tr:hover td { background: #1e293b55; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #0f1a33; border: 1px solid #1f2b4a; color: var(--text);
+      padding: 6px 10px; border-radius: 10px; cursor: pointer; text-decoration: none;
+      font-size: 13px;
+    }
+    .btn:hover { border-color: var(--blue); }
+
+    .pill {
+      padding: 3px 8px; border-radius: 999px; font-size: 12px;
+      display: inline-block; text-transform: lowercase;
+    }
+    .pill.ok { background: #052e1a; color: #86efac; border: 1px solid #14532d; }
+    .pill.warn { background: #2b1b02; color: #fcd34d; border: 1px solid #78350f; }
+    .pill.bad { background: #2b0b0b; color: #fca5a5; border: 1px solid #7f1d1d; }
+    .pill.proc { background: #0b1a2b; color: #93c5fd; border: 1px solid #1d4ed8; }
+    .pill.muted { background: #1f2937; color: var(--muted); border: 1px solid #374151; }
+  </style>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>QueueCTL Dashboard</h1>
+    <div class="sub">Live queue stats, DLQ, and metrics (auto-refreshes every 5s)</div>
+
+    <!-- KPIs -->
+    <div class="card kpi">
+      <div class="stat"><div class="label">Pending</div><div class="value" id="kpiPending">0</div></div>
+      <div class="stat"><div class="label">Processing</div><div class="value" id="kpiProcessing">0</div></div>
+      <div class="stat"><div class="label">Completed</div><div class="value" id="kpiCompleted">0</div></div>
+      <div class="stat"><div class="label">DLQ</div><div class="value" id="kpiDLQ">0</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid" style="margin-top:20px;">
+      <div class="card" style="grid-column: span 6;">
+        <h2>Queue State Breakdown</h2>
+        <canvas id="stateChart" height="140"></canvas>
+      </div>
+      <div class="card" style="grid-column: span 6;">
+        <h2>Execution Metrics</h2>
+        <div><b>Average Duration:</b> <span id="avgDuration">0.00s</span></div>
+        <div><b>Total Jobs:</b> <span id="totalJobs">0</span></div>
+      </div>
+    </div>
+
+    <!-- Tables -->
+    <div class="grid" style="margin-top:20px;">
+      <div class="card" style="grid-column: span 7;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h2>Recent Jobs</h2>
+          <a href="#" class="btn" onclick="loadJobs();return false;">Refresh</a>
+        </div>
+        <table id="jobsTable">
+          <thead>
+            <tr>
+              <th>ID</th><th>Command</th><th>State</th><th>Attempts</th><th>Priority</th><th>Duration(s)</th><th>Exit</th><th>Updated</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="grid-column: span 5;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <h2>Dead Letter Queue</h2>
+          <a href="#" class="btn" onclick="loadDLQ();return false;">Refresh</a>
+        </div>
+        <table id="dlqTable">
+          <thead>
+            <tr><th>ID</th><th>Reason</th><th>Created</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const REFRESH_MS = 5000;
+    let chart;
+
+    const badge = st => {
+      if (st === "completed") return '<span class="pill ok">completed</span>';
+      if (st === "failed") return '<span class="pill warn">failed</span>';
+      if (st === "dead") return '<span class="pill bad">dead</span>';
+      if (st === "processing") return '<span class="pill proc">processing</span>';
+      return '<span class="pill muted">'+st+'</span>';
+    };
+
+    async function loadStats() {
+      try {
+        const r = await fetch("/api/stats");
+        const d = await r.json();
+
+        document.getElementById("kpiPending").textContent = d.pending;
+        document.getElementById("kpiProcessing").textContent = d.processing;
+        document.getElementById("kpiCompleted").textContent = d.completed;
+        document.getElementById("kpiDLQ").textContent = d.dlq;
+        document.getElementById("avgDuration").textContent = d.avg_duration.toFixed(2) + "s";
+        document.getElementById("totalJobs").textContent = (d.pending + d.processing + d.completed + d.failed + d.dead);
+
+        const data = [d.pending, d.processing, d.completed, d.failed, d.dead, d.dlq];
+        const labels = ["Pending","Processing","Completed","Failed","Dead","DLQ"];
+
+        if (!chart) {
+          chart = new Chart(document.getElementById("stateChart"), {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [{
+                label: "Job Count",
+                data,
+                backgroundColor: ["#f0ad4e","#5bc0de","#5cb85c","#d9534f","#6c757d","#a855f7"]
+              }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+          });
+        } else {
+          chart.data.datasets[0].data = data;
+          chart.update();
+        }
+      } catch (err) {
+        console.error("Error loading stats", err);
+      }
+    }
+
+    async function loadJobs() {
+      try {
+        const r = await fetch("/api/jobs");
+        const jobs = await r.json();
+        const tbody = document.querySelector("#jobsTable tbody");
+        tbody.innerHTML = "";
+
+        jobs.forEach(j => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${j.id}</td>
+            <td title="${j.command}" class="muted">${j.command}</td>
+            <td>${badge(j.state)}</td>
+            <td>${j.attempts}/${j.max_retries}</td>
+            <td>${j.priority ?? ""}</td>
+            <td>${j.duration_sec ?? ""}</td>
+            <td>${j.exit_code ?? ""}</td>
+            <td>${j.updated_at ?? ""}</td>`;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Error loading jobs", err);
+      }
+    }
+
+    async function loadDLQ() {
+      try {
+        const r = await fetch("/api/dlq");
+        const dlq = await r.json();
+        const tbody = document.querySelector("#dlqTable tbody");
+        tbody.innerHTML = "";
+
+        dlq.forEach(d => {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${d.id}</td>
+            <td class="muted">${d.reason ?? ""}</td>
+            <td>${d.created_at ?? ""}</td>`;
+          tbody.appendChild(tr);
+        });
+      } catch (err) {
+        console.error("Error loading DLQ", err);
+      }
+    }
+
+    async function refreshAll() {
+      await Promise.all([loadStats(), loadJobs(), loadDLQ()]);
+    }
+
+    refreshAll();
+    setInterval(refreshAll, REFRESH_MS);
+  </script>
+</body>
+</html>
