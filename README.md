@@ -1,4 +1,4 @@
-# QueueCTL — Python-based Job Queue Management System
+# QueueCTL: Python-based Job Queue Management System
 
 QueueCTL is a lightweight, reliable **CLI-driven distributed job queue system** built in Python.  
 It supports **asynchronous job execution**, **persistent storage**, **multiple worker management**, **retry & backoff**, **dead letter queues (DLQ)**, **configurable settings**, and an optional **web dashboard for live monitoring**.
@@ -193,14 +193,166 @@ queuectl worker stop
 python -m queuectl.dashboard
 ```
 
+[!Dashboard](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
+
+
 Open: https://localhost:8080
 
 -----
 
+##  Architecture Explanation
+
+QueueCTL is designed with a **modular and extensible architecture** following the *Single Responsibility Principle (SRP)* — each module handles one clear purpose.  
+
+### Core Components
+
+| **Module** | **Role** | **Detailed Description** |
+|-------------|-----------|---------------------------|
+| `cli.py` | Command Line Interface | Handles all CLI commands (`enqueue`, `list`, `status`, `worker`, `dlq`, `config`). It uses **Typer/Click** to parse commands and send actions to the core modules. |
+| `db.py` | Database Persistence Layer | Manages the SQLite database. Creates tables for `jobs`, `dlq`, and `config`. Ensures **data durability**, so jobs persist after restarts. Uses SQL transactions for safe updates. |
+| `worker.py` | Worker Logic | Core engine of the system. Each worker picks jobs in `pending` state, locks them, executes their command, tracks exit codes, updates job states (`processing → completed/failed`), applies **timeouts** and **retries**, and pushes to DLQ when necessary. |
+| `scheduler.py` | Job Scheduling | Manages **delayed jobs** using `run_at` timestamps. Ensures jobs are not executed before their scheduled time. |
+| `config.py` | Configuration Manager | Stores and retrieves global configurations like `max_retries` and `backoff_base`. Config values are stored persistently in the database and can be changed dynamically from the CLI. |
+| `dashboard.py` | Monitoring Dashboard | A **Flask web server** providing a live visualization of queue metrics, job counts, DLQ contents, and success/failure stats. It serves `dashboard.html` with Chart.js for live charts. |
+| `utils.py` | Helper Functions | Contains reusable utilities for logging, time formatting, exponential backoff calculation, and process management. Keeps code DRY and clean. |
+| `queue.db` | SQLite Database | Central persistent storage of all jobs, DLQ entries, configuration, and logs. |
+
+---
+
+### Data Flow Overview
+
+1. **CLI Command** → (e.g., `enqueue`, `worker start`)
+2. **Job Stored** → `db.py` inserts into `jobs` table.
+3. **Worker Fetches** → `worker.py` locks and picks one `pending` job.
+4. **Job Execution** → Worker executes `command` using `subprocess`.
+5. **State Transition** → Updates job’s state in database.
+6. **Retry/Backoff** → If failure, retries with exponential delay.
+7. **DLQ Transfer** → After max retries, moves to DLQ.
+8. **Dashboard Visualization** → Flask dashboard reads DB and shows live metrics.
+
+---
+
+### Design Principles Used
+
+- **SRP (Single Responsibility Principle)** → Each module has one clear function.  
+- **Persistence First** → Job data stored before execution ensures fault tolerance.  
+- **Locking Mechanism** → Prevents multiple workers from processing the same job.  
+- **Graceful Shutdown** → Workers finish running jobs before termination.  
+- **Scalability** → Multiple workers can run in parallel.  
+- **Observability** → Real-time dashboard shows internal metrics.
+
+**Result:**  
+This architecture makes QueueCTL robust, maintainable, and easy to extend with new features like priority queues or remote execution.
 
 
+## ⚙️ Key Algorithms
+
+QueueCTL implements several key control algorithms that ensure job execution is **fault-tolerant**, **efficient**, and **predictable**.
+
+---
+
+### Exponential Backoff (Retry Delay)
+
+**Purpose:**  
+Prevents retry storms when a job fails repeatedly by adding increasing delays.
+
+**Formula:**  
+```bash
+delay = base_backoff ^ attempts
+```
 
 
+**Example:**
+If `base_backoff = 2` and `max_retries = 3`:
+| Attempt | Delay (seconds) |
+|----------|-----------------|
+| 1 | 2 |
+| 2 | 4 |
+| 3 | 8 |
+
+**Implementation:**  
+- Stored in `worker.py`
+- When a job fails, it calculates next `run_at` using this delay before retrying.
+- On final failure, moves job to DLQ.
+
+---
+
+### ⏱️ Job Timeout Handling
+
+**Purpose:**  
+Ensures no job runs indefinitely (e.g., a stuck command).
+
+**Mechanism:**
+- Each job has a `timeout_sec` field (default = 60s).
+- `worker.py` uses `subprocess.Popen` with a timer.
+- If process runs longer than `timeout_sec`, it is **force-terminated** and marked `failed`.
+
+**Result:**  
+Your queue remains responsive even if one job misbehaves.
+
+---
+
+###  Retry Logic
+
+**Purpose:**  
+Ensures transient failures are automatically retried.
+
+**Mechanism:**
+- On failure, increment `attempts` count.
+- If `attempts < max_retries` → retry job after exponential delay.
+- If `attempts == max_retries` → move job to DLQ.
+
+**SQL Example:**
+```sql
+UPDATE jobs SET state='pending', run_at='NOW()+delay' WHERE id=?;
+```
+
+**Result:**
+Jobs recover automatically from network issues or temporary failures.
+
+## Worker Locking
+
+**Purpose:**
+Prevents two workers from picking the same job concurrently.
+
+**Mechanism:**
+* SQLite BEGIN IMMEDIATE TRANSACTION ensures row-level lock.
+* Worker atomically updates job state to processing.
+* Other workers see the job as unavailable.
+
+**Result:**
+No duplicate job executions even when multiple workers run in parallel.
+
+
+---
+
+## 🧮 Metrics Aggregation
+
+**Purpose:**  
+Continuously update and display real-time queue statistics for monitoring and analysis.
+
+### Metrics Tracked
+- **Job counts per state** — Pending, Running, Completed, Failed  
+- **DLQ (Dead Letter Queue) count** — Tracks permanently failed jobs  
+- **Average duration:** `AVG(duration_sec)` for completed jobs
+
+### Used In
+- **CLI:**  
+  Displayed via the `status` command for quick summary.  
+- **Dashboard:**  
+  Exposed through the `/api/stats` endpoint for live charts and analytics.
+
+---
+
+## Delayed Job Scheduling
+
+**Purpose:**  
+Enable scheduling of jobs to execute at a **future timestamp** using `run_at`.
+
+### Mechanism
+- The **scheduler** filters jobs where:
+  ```sql
+  run_at <= NOW()
 
 
 
