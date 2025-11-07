@@ -142,23 +142,6 @@ queuectl status
  
 It prints a table of job Lifecycle Status
 
-#### Example Output
-```
-
-┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
-┃ State            ┃ Count ┃
-┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
-│ pending          │     1 │
-│ processing       │     0 │
-│ completed        │     3 │
-│ failed           │     0 │
-│ dead             │     1 │
-│ dlq              │     1 │
-│ avg_duration_sec │  0.04 │
-└──────────────────┴───────┘
-
-```
-
 ### List Jobs by State
 
 ```bash
@@ -193,7 +176,7 @@ queuectl worker stop
 python -m queuectl.dashboard
 ```
 
-[!Dashboard](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
+
 
 
 Open: https://localhost:8080
@@ -245,7 +228,7 @@ QueueCTL is designed with a **modular and extensible architecture** following th
 This architecture makes QueueCTL robust, maintainable, and easy to extend with new features like priority queues or remote execution.
 
 
-## ⚙️ Key Algorithms
+## Key Algorithms
 
 QueueCTL implements several key control algorithms that ensure job execution is **fault-tolerant**, **efficient**, and **predictable**.
 
@@ -326,7 +309,7 @@ No duplicate job executions even when multiple workers run in parallel.
 
 ---
 
-## 🧮 Metrics Aggregation
+## Metrics Aggregation
 
 **Purpose:**  
 Continuously update and display real-time queue statistics for monitoring and analysis.
@@ -350,10 +333,154 @@ Continuously update and display real-time queue statistics for monitoring and an
 Enable scheduling of jobs to execute at a **future timestamp** using `run_at`.
 
 ### Mechanism
-- The **scheduler** filters jobs where:
+- The `schedular.py` filters jobs where:
   ```sql
   run_at <= NOW()
+  ```
+- Jobs scheduled for future remain `pending`.
 
+**Result**
+These algorithms together make QueueCTL a resilient, fault-tolerant job system capable of recovering from errors, scaling workers, and executing jobs predictably.
+
+
+
+
+---
+
+# Assumptions & Trade-offs (Detailed Explanation)
+
+This section demonstrates that you’ve made **intentional engineering decisions**.  
+It proves you understand **why** you designed it the way you did.
+
+## Assumptions & Trade-offs
+
+| **Decision / Assumption** | **Why it was made (Trade-off)** |
+|----------------------------|----------------------------------|
+| **SQLite for persistence** | Lightweight, file-based, cross-platform. No server dependency. Ideal for single-node local queue. (Trade-off: not distributed, slower under extreme parallelism.) |
+| **Python multiprocessing for workers** | Enables real parallel execution. Simpler than threads due to GIL. (Trade-off: slightly more memory use.) |
+| **CLI-based design** | Easier to test, script, and automate. Works on any OS. (Trade-off: not a GUI-heavy application.) |
+| **Flask dashboard** | Lightweight framework, good for visualization. (Trade-off: limited scalability for large real-time systems.) |
+| **JSON job definition** | Simple to enqueue via CLI. Human-readable and flexible. (Trade-off: basic schema validation.) |
+| **Exponential backoff retry** | Prevents overloading the system. (Trade-off: longer total processing time for persistent failures.) |
+| **Single DB file (`queue.db`)** | Simplicity & portability. (Trade-off: not ideal for distributed worker nodes.) |
+| **Timeout handling via `subprocess`** | Compatible with any OS command. (Trade-off: subprocess overhead vs direct function call.) |
+
+**Summary:**  
+Every design choice balances **simplicity**, **reliability**, and **maintainability**, keeping QueueCTL portable and easy to understand for interview evaluations.
+
+
+
+## Testing Instructions
+
+Follow these tests to verify all system functionalities — from job lifecycle to retries, DLQ, and dashboard monitoring.
+
+---
+
+### 1. Basic Successful Job
+```bash
+queuectl enqueue "{\"id\":\"job_ok\",\"command\":\"cmd /c echo Hello\"}"
+queuectl worker start --count 1
+```
+
+**Expected:**
+Job runs successfully → moves pending → processing → completed.
+
+### 2. Failing Job with Retries and DLQ
+```bash
+queuectl enqueue "{\"id\":\"job_fail\",\"command\":\"cmd /c exit 1\"}"
+
+```
+
+**Expected:**
+Job fails → retries 3 times with exponential backoff → moves to DLQ.
+
+
+```bash
+queuectl dlq list
+
+```
+Shows job_fail in DLQ.
+
+### 3. Scheduled (Delayed) Job
+
+```bash
+queuectl enqueue "{\"id\":\"job_future\",\"command\":\"cmd /c echo Scheduled Run\",\"run_at\":\"2025-11-08T12:00:00Z\"}"
+```
+**Expected:**
+Job stays in pending until the timestamp is reached.
+
+### 4. Timeout Job
+
+```bash
+queuectl enqueue "{\"id\":\"timeout_test\",\"command\":\"cmd /c timeout 70\",\"timeout_sec\":5}"
+```
+
+**Expected:**
+Worker kills process after 5 seconds → job marked failed → moves to DLQ.
+
+
+### 5. Parallel Workers
+
+```bash
+queuectl worker start --count 3
+```
+
+**Expected:**
+Multiple jobs processed in parallel — no duplication due to locking.
+
+
+### 6. Persistence Test
+
+* Stop all workers
+* Restart app
+* Run `queuectl status`
+
+**Example Output:**
+```
+
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ State            ┃ Count ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ pending          │     1 │
+│ processing       │     0 │
+│ completed        │     3 │
+│ failed           │     0 │
+│ dead             │     1 │
+│ dlq              │     1 │
+│ avg_duration_sec │  0.04 │
+└──────────────────┴───────┘
+
+```
+
+**Expected:**
+Job data and DLQ entries still visible.
+Confirms persistence through restarts.
+
+### 7. Dashboard Verification
+
+```bash
+python -m queuectl.dashboard
+```
+
+[!Dashboard]("https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg")
+
+
+Open http://localhost:8080
+
+***Expected:***
+
+* KPI counters update live
+* Bar charts show current job distribution
+* DLQ table lists failed jobs
+
+
+### 8. Config Change Verification
+
+```bash
+queuectl config set max-retries 5
+queuectl config set base_backoff 3
+queuectl config show
+```
 
 
 
