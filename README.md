@@ -28,6 +28,8 @@ It supports **asynchronous job execution**, **persistent storage**, **multiple w
 
 ###  **System Components**
 
+```
+
 QUEUECTL/
 │
 ├── .venv/                        # Python virtual environment (dependencies isolated)
@@ -58,6 +60,8 @@ QUEUECTL/
 ├── README.md                     # Project documentation (this file)
 ├── smoke.db                      # Database created during smoke testing
 └── queue.db                      # Root-level database instance (if used globally)
+
+```
 
 
 ---
@@ -149,6 +153,7 @@ It prints a table of job Lifecycle Status
 │ dlq              │     1 │
 │ avg_duration_sec │  0.04 │
 └──────────────────┴───────┘
+
 
 
 
