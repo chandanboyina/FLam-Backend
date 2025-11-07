@@ -1,4 +1,4 @@
-# ⚙️ QueueCTL — Python-based Job Queue Management System
+# QueueCTL — Python-based Job Queue Management System
 
 QueueCTL is a lightweight, reliable **CLI-driven distributed job queue system** built in Python.  
 It supports **asynchronous job execution**, **persistent storage**, **multiple worker management**, **retry & backoff**, **dead letter queues (DLQ)**, **configurable settings**, and an optional **web dashboard for live monitoring**.
@@ -111,7 +111,9 @@ python -m queuectl.db
 ```
 ## **Usage Example**
 
-### **Enqueue Jobs**
+-----
+
+### Enqueue Jobs
 
 Adds jobs to the Queue
 
@@ -122,7 +124,7 @@ queuectl enqueue "{\"id\":\"delayed\",\"command\":\"cmd /c echo Delayed Job\",\"
 queuectl enqueue "{\"id\":\"timeout_job\",\"command\":\"cmd /c timeout 70\",\"timeout_sec\":5}"
 ```
 
-### **Start Workers**
+### Start Workers
 
 ```bash
 queuectl worker start --count 2
@@ -131,7 +133,7 @@ queuectl worker start --count 2
 
 Starts 2 workers that process jobs concurrently
 
-### **Check Status**
+### Check Status
 
 ```bash
 queuectl status
@@ -141,6 +143,7 @@ queuectl status
 It prints a table of job Lifecycle Status
 
 #### Example Output
+```
 
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
 ┃ State            ┃ Count ┃
@@ -153,6 +156,46 @@ It prints a table of job Lifecycle Status
 │ dlq              │     1 │
 │ avg_duration_sec │  0.04 │
 └──────────────────┴───────┘
+
+```
+
+### List Jobs by State
+
+```bash
+queuectl list --state pending
+
+```
+
+### DLQ Management
+
+```bash
+queuectl dlq list
+queuectl dlq retry job2
+```
+
+### Configuration Commands
+
+```bash
+queuectl config show
+queuectl config set max-retries 5
+queuectl config set base_backoff 3
+```
+
+### Stop Workers Grecefully
+
+```bash
+queuectl worker stop
+
+```
+
+### Launch Dashboard 
+```bash
+python -m queuectl.dashboard
+```
+
+Open: https://localhost:8080
+
+-----
 
 
 
