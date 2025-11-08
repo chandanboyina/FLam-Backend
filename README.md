@@ -110,6 +110,169 @@ pip install -e .
 python -m queuectl.db
 ```
 
+---
+
+## Usage Examples — CLI Commands with Output
+
+This section demonstrates how to use **QueueCTL** from the command line for everyday operations.  
+Each command example is followed by an example output (as seen in the console).
+
+---
+
+### 1. Enqueue a New Job
+
+Adds a new job to the queue.
+
+```bash
+queuectl enqueue "{\"id\":\"job1\",\"command\":\"cmd /c echo Hello QueueCTL!\"}"
+```
+
+**Output**
+```bash
+✅ Enqueued job: job1
+```
+
+### 2. Stsrt Worker
+Start one or more worker processes to execute jobs.
+```bash
+queuectl worker start --count 2
+
+````
+**Output**
+```bash
+Launching 2 worker(s)...
+Started 2 worker(s). PIDs: 8544, 9752
+[Worker w-1a2b3c] Picked job job1
+[Worker w-1a2b3c] Completed job job1 in 0.02s
+
+```
+
+### 3. Check Queue Status
+
+Displays the current state of all jobs
+
+```bash
+queuectl status
+```
+
+**Output**
+
+```sql
+   QueueCTL System Status
+┏━━━━━━━━━━━━━━━━━━┳━━━━━━━┓
+┃ State            ┃ Count ┃
+┡━━━━━━━━━━━━━━━━━━╇━━━━━━━┩
+│ pending          │     0 │
+│ processing       │     0 │
+│ completed        │     1 │
+│ failed           │     0 │
+│ dead             │     0 │
+│ dlq              │     0 │
+│ avg_duration_sec │  0.02 │
+└──────────────────┴───────┘
+
+```
+
+### 4. List Jobs by State
+
+To view all jobs currently in the queue by their lifecycle state
+
+```bash
+queuectl list --state completed
+```
+
+**Output**
+```bash
+┏━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━┓
+┃ ID      ┃ Command                   ┃ State      ┃ Duration │
+┡━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━┩
+│ job1    │ cmd /c echo Hello QueueCTL│ completed  │ 0.02s    │
+└─────────┴───────────────────────────┴────────────┴──────────┘
+```
+
+### 5. Retry Job from DLQ 
+```bash
+queuectl dlq retry job_fail
+```
+
+**Output**
+```bash
+Retrying job job_fail from DLQ
+Job job_fail re-enqueued successfully
+```
+
+### 6. View and Edit Configuration
+Update the configuration if needed:
+```bash
+queuectl config set max-retries 5
+queuectl config set base_backoff 3
+```
+
+**Output**
+```bash
+Configuration updated: max_retries = 5
+Configuration updated: base_backoff = 3
+```
+
+Show current configurations such as max retries or backoff base.
+```bash
+queuectl config show
+```
+
+**Output**
+```makefile
+Current Configuration
+---------------------
+max_retries: 5
+base_backoff: 5
+timeout_sec: 60
+```
+
+### 7. Enqueue a Scheduled (Delayed) Job
+
+Schedule a job to run at a specific time in the future using the `run_at` parameter.
+```bash
+queuectl enqueue "{\"id\":\"job_future\",\"command\":\"cmd /c echo Future Job\",\"run_at\":\"2025-11-08T12:00:00Z\"}"
+```
+
+**Output**
+
+```bash
+Enqueued job: job_future (Scheduled for 2025-11-08T12:00:00Z)
+```
+
+The job remains in `pending` until its scheduled time.
+
+### 8. View Dead Letter Queue (DLQ)
+List all jobs that have permanently failed after maximum retry attempts.
+```bash
+queuectl dlq list
+```
+
+**Output**
+```yaml
+┏━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┓
+┃ ID     ┃ Reason               ┃ Created              ┃
+┡━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━┩
+│ job22  │ exit_code=1          │ 2025-11-07 19:49:46  │
+└────────┴───────────────────────┴──────────────────────┘
+```
+
+### 9. Launch Web Dashboard
+To view real-time statistics in your browser:
+```bash
+python -m queuectl.dashboard
+```
+Open:  http://localhost:8080
+ to monitor:
+* Job counts per state
+* Success/failure metrics
+* Average job duration
+* DLQ table with retry options
+
+![Homepage](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
+
+
 
 ##  Architecture Explanation
 
@@ -213,9 +376,10 @@ Ensures transient failures are automatically retried.
 - If `attempts < max_retries` → retry job after exponential delay.
 - If `attempts == max_retries` → move job to DLQ.
 
-**SQL Example:**
-```sql
-UPDATE jobs SET state='pending', run_at='NOW()+delay' WHERE id=?;
+
+DLQ entries can be **retried manually** via:
+```bash
+queuectl dlq retry job2
 ```
 
 **Result:**
