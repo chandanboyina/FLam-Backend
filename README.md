@@ -109,79 +109,7 @@ pip install -e .
 ```bash
 python -m queuectl.db
 ```
-## **Usage Example**
 
------
-
-### Enqueue Jobs
-
-Adds jobs to the Queue
-
-```bash
-queuectl enqueue "{\"id\":\"job1\",\"command\":\"cmd /c echo Hello from QueueCTL\"}"
-queuectl enqueue "{\"id\":\"job2\",\"command\":\"cmd /c exit 1\"}"
-queuectl enqueue "{\"id\":\"delayed\",\"command\":\"cmd /c echo Delayed Job\",\"run_at\":\"2025-11-08T10:00:00Z\"}"
-queuectl enqueue "{\"id\":\"timeout_job\",\"command\":\"cmd /c timeout 70\",\"timeout_sec\":5}"
-```
-
-### Start Workers
-
-```bash
-queuectl worker start --count 2
-
-```
-
-Starts 2 workers that process jobs concurrently
-
-### Check Status
-
-```bash
-queuectl status
-
-```
- 
-It prints a table of job Lifecycle Status
-
-### List Jobs by State
-
-```bash
-queuectl list --state pending
-
-```
-
-### DLQ Management
-
-```bash
-queuectl dlq list
-queuectl dlq retry job2
-```
-
-### Configuration Commands
-
-```bash
-queuectl config show
-queuectl config set max-retries 5
-queuectl config set base_backoff 3
-```
-
-### Stop Workers Grecefully
-
-```bash
-queuectl worker stop
-
-```
-
-### Launch Dashboard 
-```bash
-python -m queuectl.dashboard
-```
-
-
-
-
-Open: https://localhost:8080
-
------
 
 ##  Architecture Explanation
 
@@ -429,6 +357,21 @@ queuectl worker start --count 3
 Multiple jobs processed in parallel — no duplication due to locking.
 
 
+### 6. List Jobs by State
+
+```bash
+queuectl list --state pending
+
+```
+
+### DLQ Management
+
+```bash
+queuectl dlq list
+queuectl dlq retry job2
+```
+
+
 ### 6. Persistence Test
 
 * Stop all workers
@@ -481,6 +424,7 @@ queuectl config set max-retries 5
 queuectl config set base_backoff 3
 queuectl config show
 ```
+
 
 
 
