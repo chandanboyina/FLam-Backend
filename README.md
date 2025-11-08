@@ -462,7 +462,7 @@ Confirms persistence through restarts.
 python -m queuectl.dashboard
 ```
 
-![Homepage]("https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg")
+![Homepage](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
 
 
 Open http://localhost:8080
@@ -481,6 +481,7 @@ queuectl config set max-retries 5
 queuectl config set base_backoff 3
 queuectl config show
 ```
+
 
 
 
