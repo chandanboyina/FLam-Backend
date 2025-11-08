@@ -462,20 +462,21 @@ Every design choice balances **simplicity**, **reliability**, and **maintainabil
 
 
 
-## Testing Instructions
+## Testing Instructions - How to Verify Functionality
 
-Follow these tests to verify all system functionalities — from job lifecycle to retries, DLQ, and dashboard monitoring.
+These tests ensure that every part of the QueueCTL system works correctly, including all job lifecycles, retry logic, DLQ handling, and monitoring.
 
 ---
 
-### 1. Basic Successful Job
+### 1. Successful Job Test
 ```bash
-queuectl enqueue "{\"id\":\"job_ok\",\"command\":\"cmd /c echo Hello\"}"
+queuectl enqueue "{\"id\":\"job_success\",\"command\":\"cmd /c echo Hello Success!\"}"
 queuectl worker start --count 1
+
 ```
 
 **Expected:**
-Job runs successfully → moves pending → processing → completed.
+Job runs successfully → processing → completed.
 
 ### 2. Failing Job with Retries and DLQ
 ```bash
@@ -484,14 +485,17 @@ queuectl enqueue "{\"id\":\"job_fail\",\"command\":\"cmd /c exit 1\"}"
 ```
 
 **Expected:**
-Job fails → retries 3 times with exponential backoff → moves to DLQ.
+* Job fails initially
+* Retries 3 times with exponential backoff (2s, 4s, 8s)
+* Moves to DLQ after exceeding retries
 
+
+**Check DLQ:**
 
 ```bash
 queuectl dlq list
 
 ```
-Shows job_fail in DLQ.
 
 ### 3. Scheduled (Delayed) Job
 
@@ -499,7 +503,7 @@ Shows job_fail in DLQ.
 queuectl enqueue "{\"id\":\"job_future\",\"command\":\"cmd /c echo Scheduled Run\",\"run_at\":\"2025-11-08T12:00:00Z\"}"
 ```
 **Expected:**
-Job stays in pending until the timestamp is reached.
+Job stays in `pending` until the timestamp is reached.
 
 ### 4. Timeout Job
 
@@ -511,10 +515,13 @@ queuectl enqueue "{\"id\":\"timeout_test\",\"command\":\"cmd /c timeout 70\",\"t
 Worker kills process after 5 seconds → job marked failed → moves to DLQ.
 
 
-### 5. Parallel Workers
+### 5. Multiple Worker Test
 
 ```bash
+queuectl enqueue "{\"id\":\"jobA\",\"command\":\"cmd /c echo JobA\"}"
+queuectl enqueue "{\"id\":\"jobB\",\"command\":\"cmd /c echo JobB\"}"
 queuectl worker start --count 3
+
 ```
 
 **Expected:**
@@ -569,12 +576,10 @@ Confirms persistence through restarts.
 python -m queuectl.dashboard
 ```
 
-![Homepage](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
-
 
 Open http://localhost:8080
 
-***Expected:***
+**Expected:**
 
 * KPI counters update live
 * Bar charts show current job distribution
@@ -588,6 +593,8 @@ queuectl config set max-retries 5
 queuectl config set base_backoff 3
 queuectl config show
 ```
+**Expected:**
+Updated configuration values reflected immediately in future job retries.
 
 
 
