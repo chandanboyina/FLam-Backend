@@ -570,7 +570,19 @@ queuectl dlq retry job2
 Job data and DLQ entries still visible.
 Confirms persistence through restarts.
 
-### 7. Dashboard Verification
+
+### 7. Config Change Verification
+
+```bash
+queuectl config set max-retries 5
+queuectl config set base_backoff 3
+queuectl config show
+```
+**Expected:**
+Updated configuration values reflected immediately in future job retries.
+
+
+### 8. Dashboard Verification
 
 ```bash
 python -m queuectl.dashboard
@@ -584,17 +596,6 @@ Open http://localhost:8080
 * KPI counters update live
 * Bar charts show current job distribution
 * DLQ table lists failed jobs
-
-
-### 8. Config Change Verification
-
-```bash
-queuectl config set max-retries 5
-queuectl config set base_backoff 3
-queuectl config show
-```
-**Expected:**
-Updated configuration values reflected immediately in future job retries.
 
 
 
