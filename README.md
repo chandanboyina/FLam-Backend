@@ -597,6 +597,27 @@ Open http://localhost:8080
 * Bar charts show current job distribution
 * DLQ table lists failed jobs
 
+---
+
+## References & Citations
+
+This project was built with reference to publicly available and officially licensed resources for educational and implementation purposes.  
+All referenced materials are open-source or freely available for learning and development.
+
+### Documentation & Framework References
+- [Python Official Documentation](https://docs.python.org/3/)
+- [Flask Web Framework Documentation](https://flask.palletsprojects.com/)
+- [Typer CLI Framework Documentation](https://typer.tiangolo.com/)
+- [SQLite3 Official Docs](https://www.sqlite.org/docs.html)
+- [Chart.js Documentation](https://www.chartjs.org/docs/latest/)
+- [OpenAI ChatGPT](https://chat.openai.com) — used for project guidance, learning explanations, and documentation structure.
+
+
+> All external references were used solely for educational and implementation understanding purposes.  
+> The complete source code, logic, and integration were written, tested, and verified by **Chandan Boyina**.
+---
+
+
 
 
 
