@@ -3,6 +3,8 @@
 QueueCTL is a lightweight, reliable **CLI-driven distributed job queue system** built in Python.  
 It supports **asynchronous job execution**, **persistent storage**, **multiple worker management**, **retry & backoff**, **dead letter queues (DLQ)**, **configurable settings**, and an optional **web dashboard for live monitoring**.
 
+**Backend Record Link:** https://1drv.ms/v/c/bc204b0860a4efb4/ERntO2GiDYxLkDa-5pjRKw0BbHFxEEaI5y18dVSv_YxyuA?e=ceUf0u
+
 ---
 
 ## Features Overview
@@ -671,6 +673,7 @@ All referenced materials are open-source or freely available for learning and de
 * I take complete responsibility for the design decisions and correctness of the submitted code.
 
 ---
+
 
 
 
