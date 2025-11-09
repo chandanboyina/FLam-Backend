@@ -30,7 +30,7 @@ console = Console()
 
 
 # ============================================================
-# 🧩 Ensure DB initialization
+# Ensure DB initialization
 # ============================================================
 @app.callback()
 def _ensure_db(db: str = DB_OPTION):
@@ -38,7 +38,7 @@ def _ensure_db(db: str = DB_OPTION):
 
 
 # ============================================================
-# 🧠 ENQUEUE JOB
+# ENQUEUE JOB
 # ============================================================
 @app.command()
 def enqueue(job_json: str = typer.Argument(..., help="Job JSON (example: '{\"id\":\"job1\",\"command\":\"echo hi\"}')"),
@@ -56,12 +56,12 @@ def enqueue(job_json: str = typer.Argument(..., help="Job JSON (example: '{\"id\
 
     store = JobStore(db)
     store.enqueue(job)
-    console.print(f"[green]✅ Enqueued job:[/green] {job['id']}")
+    console.print(f"[green] Enqueued job:[/green] {job['id']}")
 
 
 # ============================================================
-# ⚙️ WORKER COMMANDS
-# ============================================================
+# WORKER COMMANDS
+# ===============================================================
 @worker_app.command("start")
 def worker_start(count: int = typer.Option(1, "--count", "-c", help="Number of workers"),
                  db: str = DB_OPTION):
@@ -80,8 +80,9 @@ def worker_stop():
 
 
 # ============================================================
-# 📊 STATUS COMMAND
-# ============================================================
+# STATUS COMMAND
+# =============================================================
+
 @app.command()
 def status(db: str = DB_OPTION):
     """
@@ -102,8 +103,8 @@ def status(db: str = DB_OPTION):
 
 
 # ============================================================
-# 📋 LIST JOBS
-# ============================================================
+# LIST JOBS
+# =============================================================
 @app.command("list")
 def list_jobs(state: Optional[str] = typer.Option(None, "--state", "-s", help="Filter by state"),
               db: str = DB_OPTION):
@@ -147,8 +148,8 @@ def list_jobs(state: Optional[str] = typer.Option(None, "--state", "-s", help="F
 
 
 # ============================================================
-# 🧱 DEAD LETTER QUEUE COMMANDS
-# ============================================================
+# DEAD LETTER QUEUE COMMANDS
+# ==============================================================
 @dlq_app.command("list")
 def dlq_list(db: str = DB_OPTION):
     """
@@ -187,7 +188,7 @@ def dlq_retry(job_id: str = typer.Argument(..., help="Job ID to retry"),
 
 
 # ============================================================
-# ⚙️ CONFIGURATION COMMANDS
+# CONFIGURATION COMMANDS
 # ============================================================
 @config_app.command("get")
 def cfg_get(key: str = typer.Argument(...), db: str = DB_OPTION):
@@ -238,7 +239,7 @@ def cfg_show(db: str = DB_OPTION):
 
 
 # ============================================================
-# 🧾 JOB LOGS VIEWER
+# JOB LOGS VIEWER
 # ============================================================
 @app.command("logs")
 def view_logs(job_id: str = typer.Argument(..., help="Job ID to view logs for")):
@@ -256,7 +257,7 @@ def view_logs(job_id: str = typer.Argument(..., help="Job ID to view logs for"))
 
 
 # ============================================================
-# 📈 METRICS SUMMARY
+# METRICS SUMMARY
 # ============================================================
 @app.command("metrics")
 def metrics(db: str = DB_OPTION):
@@ -285,8 +286,8 @@ def metrics(db: str = DB_OPTION):
 
 
 # ============================================================
-# 🌐 DASHBOARD COMMAND
-# ============================================================
+# DASHBOARD COMMAND
+# ==============================================================
 @app.command("dashboard")
 def dashboard(db: str = DB_OPTION,
               port: int = typer.Option(8080, "--port", "-p", help="Port for the dashboard")):
