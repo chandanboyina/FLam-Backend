@@ -270,7 +270,10 @@ Open:  http://localhost:8080
 * Average job duration
 * DLQ table with retry options
 
-![Homepage](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
+![Dashboard](https://github.com/chandanboyina/FLam-Backend/blob/main/Queuectl%20Dashboard.jpg)
+
+
+![Dashboard](https://github.com/chandanboyina/FLam-Backend/blob/main/Dashboard%202.jpeg)
 
 
 
@@ -624,22 +627,23 @@ All referenced materials are open-source or freely available for learning and de
 
 ## Compliance & Integrity Declaration
 
-I hereby declare that this project is my original work, developed independently as part of a company technical evaluation.  
-I have not received any unauthorized assistance or copied content from other individuals or projects.  
-All referenced materials (Python documentation, Flask guides, SQLite tutorials) were used solely for conceptual understanding.  
-I fully understand every component of this project and can explain its logic and architecture in detail.
+* I hereby declare that this project is my original work, developed independently as part of a company technical evaluation.  
+* I have not received any unauthorized assistance or copied content from other individuals or projects.  
+* All referenced materials (Python documentation, Flask guides, SQLite tutorials) were used solely for conceptual understanding.  
+* I fully understand every component of this project and can explain its logic and architecture in detail.
 
 ---
 
 
 ## Developer’s Note
 
-This project was developed independently for a placement technical assignment.  
-Throughout the development process, I referred to official documentation for **Python**, **Flask**, **SQLite**, and other standard libraries.  
-Automated tools were used only for **research and learning reference**, and all final implementation logic, architecture, and debugging were done independently by me.  
-I take complete responsibility for the design decisions and correctness of the submitted code.
+* This project was developed independently for a placement technical assignment.  
+* Throughout the development process, I referred to official documentation for **Python**, **Flask**, **SQLite**, and other standard libraries.  
+* Automated tools were used only for **research and learning reference**, and all final implementation logic, architecture, and debugging were done independently by me.  
+* I take complete responsibility for the design decisions and correctness of the submitted code.
 
 ---
+
 
 
 
