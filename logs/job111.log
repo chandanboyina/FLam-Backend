@@ -1,0 +1,12 @@
+[COMMAND]: echo Hello QueueCTL
+
+[DURATION]: 0.01 seconds
+
+[EXIT CODE]: 0
+
+[STDOUT]
+Hello QueueCTL
+
+
+[STDERR]
+

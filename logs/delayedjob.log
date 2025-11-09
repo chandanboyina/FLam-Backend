@@ -1,11 +1,11 @@
-[COMMAND]: cmd /c echo Processing Data...
+[COMMAND]: cmd /c echo schedule job run
 
 [DURATION]: 0.02 seconds
 
 [EXIT CODE]: 0
 
 [STDOUT]
-Processing Data..."
+schedule job run"
 
 
 [STDERR]
