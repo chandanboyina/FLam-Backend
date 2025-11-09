@@ -125,11 +125,15 @@ Adds a new job to the queue.
 
 ```bash
 queuectl enqueue "{\"id\":\"job1\",\"command\":\"cmd /c echo Hello QueueCTL!\"}"
+
+queuectl enqueue "{\"id\":\"job_fail\",\"command\":\"cmd /c exit 1\"}"
+
 ```
 
 **Output**
 ```bash
-✅ Enqueued job: job1
+Enqueued job: job1
+Enqueued job: job_fail
 ```
 
 ### 2. Stsrt Worker
@@ -144,6 +148,29 @@ Launching 2 worker(s)...
 Started 2 worker(s). PIDs: 8544, 9752
 [Worker w-1a2b3c] Picked job job1
 [Worker w-1a2b3c] Completed job job1 in 0.02s
+[16:03:01] [Worker w-e20109c9] Started.
+[16:03:01] [Worker w-8b63227e] Started.
+[16:03:01] [Worker w-8b63227e] Picked job job_fail
+(Priority=100, Attempt=1/3)
+[16:03:01] [Worker w-8b63227e] Job job_fail failed
+(exit_code=1), scheduling retry or DLQ
+[DEBUG] fail_or_retry for job=job_fail (attempt 1/3) reason=exit_code=1
+[Retry DEBUG] Retrying job job_fail in 2s (attempt 1)
+[16:03:03] [Worker w-e20109c9] Picked job job_fail
+(Priority=100, Attempt=2/3)
+[16:03:03] [Worker w-e20109c9] Job job_fail failed
+(exit_code=1), scheduling retry or DLQ
+[DEBUG] fail_or_retry for job=job_fail (attempt 2/3) reason=exit_code=1
+[Retry DEBUG] Retrying job job_fail in 4s (attempt 2)
+[16:03:07] [Worker w-8b63227e] Picked job job_fail
+(Priority=100, Attempt=3/3)
+[16:03:07] [Worker w-8b63227e] Job job_fail failed
+(exit_code=1), scheduling retry or DLQ
+[DEBUG] fail_or_retry for job=job_fail (attempt 3/3) reason=exit_code=1
+============================================================
+[DLQ DEBUG] Moving job job_fail to DLQ now!
+============================================================
+[DLQ DEBUG] Job job_fail inserted into DLQ
 
 ```
 
@@ -166,9 +193,9 @@ queuectl status
 │ processing       │     0 │
 │ completed        │     1 │
 │ failed           │     0 │
-│ dead             │     0 │
-│ dlq              │     0 │
-│ avg_duration_sec │  0.02 │
+│ dead             │     1 │
+│ dlq              │     1 │
+│ avg_duration_sec │  0.07 │
 └──────────────────┴───────┘
 
 ```
@@ -191,6 +218,7 @@ queuectl list --state completed
 ```
 
 ### 5. Retry Job from DLQ 
+
 ```bash
 queuectl dlq retry job_fail
 ```
@@ -643,6 +671,7 @@ All referenced materials are open-source or freely available for learning and de
 * I take complete responsibility for the design decisions and correctness of the submitted code.
 
 ---
+
 
 
 
